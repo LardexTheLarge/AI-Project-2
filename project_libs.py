@@ -87,31 +87,31 @@ def split_data(data, target_column, split_size=0.2, random_state=None):
         return None, None, None, None
 #----------------------------------------------------------------------------------------------------------------------------------------
 
-def Feature_Encoding(df, features=None, encoding_method='one_hot'):
+def Feature_Encoding(df, target_column, features=None, encoding_method='one_hot'):
+    x_train, x_test, y_train, y_test = libs.split_data(df,target_column)
     """
     Hot encoding or label encoding for specified features.
     """
     if features is None:
         raise ValueError("List of features must be provided.")
-    
     if encoding_method not in ['one_hot', 'label']:
         raise ValueError("Invalid encoding method. Please choose 'one_hot' or 'label'.")
-    
     if encoding_method == 'one_hot':
         encoder = OneHotEncoder()
+        for col in features:
+            # Fit and transform on training data
+            x_train[col]= encoder.fit_transform(x_train[col])
+            # Transform on test data
+            x_test[col] = encoder.fit_transform(x_test[col])
     else:
         encoder = LabelEncoder()
+        for col in features:
+            x_train[col] = encoder.fit_transform(x_train[col])
+            x_test[col] = encoder.fit_transform(x_test[col])
+    return x_train, x_test, y_train, y_test
     
-    # Select only the specified features from the DataFrame
-    df_subset = df[features]
-    
-    if encoding_method == 'one_hot':
-        encoded_data = encoder.fit_transform(df_subset)
-        return pd.DataFrame(encoded_data.toarray(), columns=encoder.get_feature_names_out(features))
-    else:
-        encoded_data = df_subset.apply(encoder.fit_transform)
-        return encoded_data
-    
+feature = ['city','statezip']
+x_train, x_test, y_train, y_test = Feature_Encoding(df, 'price', features=feature, encoding_method='label')
 
 #----------------------------------------------------------------------------------------------------------
 def plot_correlation(data):
