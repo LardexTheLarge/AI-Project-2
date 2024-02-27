@@ -1,8 +1,18 @@
 from sklearn.model_selection import train_test_split
 import pandas as pd
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score
+
+from sklearn.svm import SVR
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, ExtraTreesRegressor
+from sklearn.linear_model import Ridge, Lasso, ElasticNet
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.gaussian_process import GaussianProcessRegressor
 #----------------------------------------------------------------------------------------------------------------------
 
 def read_csv_to_dataframe(file_path):
@@ -153,5 +163,68 @@ def create_pair_plot(data):
     plt.show()
 
 #--------------------------------------------------------------------------------------------------------------------
+def run_ml_pipeline(X_train, X_test, y_train, y_test, models, use_cross_validation=True):
+    """
+    Run a pipeline of machine learning models on preprocessed data.
 
+    Parameters:
+    - X_train: Preprocessed training features
+    - X_test: Preprocessed test features
+    - y_train: Training target variable
+    - y_test: Test target variable
+    - models: List of tuples (model_name, model_instance, model_parameters)
+    - use_cross_validation: Whether to use cross-validation or model scoring
+    """
+
+    score_test = []
+    score_training = []
+    model_names = []
+
+    for model_name, model, params in models:
+        # Create a pipeline for each model
+        pipeline = Pipeline([
+            ('model', model(**params))
+        ])
+
+        if use_cross_validation:
+            # Evaluate the model using cross-validation
+            scores = cross_val_score(pipeline, X_train, y_train, cv=5)
+            mean_score = scores.mean()
+            std_score = scores.std()
+            print(f"Model: {model_name}")
+            print(f"Mean Accuracy: {mean_score:.2f}")
+            print(f"Standard Deviation: {std_score}")
+            print("-" * 40)
+            score_training.append(mean_score)
+            score_test.append(np.nan)  # Cross-validation doesn't provide test scores
+        else:
+            # Fit the model and compute scores on training and test sets
+            train_score = pipeline.fit(X_train, y_train).score(X_train, y_train)
+            test_score = pipeline.score(X_test, y_test)
+            print(f"Model: {model_name}")
+            print(f"Training Score: {train_score:.2f}")
+            print(f"Test Score: {test_score:.2f}")
+            print("-" * 40)
+            score_training.append(train_score)
+            score_test.append(test_score)
+
+        model_names.append(model_name)
+
+    result = pd.DataFrame({'Model Name': model_names, 'Training Score': score_training, 'Test Score': score_test})
+    print(result)
+
+# Define the list of models to run in the pipeline
+models = [
+    ('Random Forest', RandomForestRegressor, {'n_estimators': 100}),
+    ('Gradient Boosting', GradientBoostingRegressor, {'n_estimators': 100}),
+    ('Ridge Regression', Ridge, {'alpha': 1.0}),
+    ('Lasso Regression', Lasso, {'alpha': 1.0}),
+    ('ElasticNet Regression', ElasticNet, {'alpha': 1.0, 'l1_ratio': 0.5}),
+    ('Decision Tree', DecisionTreeRegressor, {'max_depth': 5}),
+    ('Extra Trees', ExtraTreesRegressor, {'n_estimators': 100}),
+    ('KNN', KNeighborsRegressor, {'n_neighbors': 5}),
+    ('Gaussian Process', GaussianProcessRegressor, {})
+]
+
+run_ml_pipeline(X_train_scaled, X_test_scaled, y_train, y_test, models, use_cross_validation=True)
 
