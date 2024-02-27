@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score
+import project_libs as libs
 
 from sklearn.svm import SVR
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, ExtraTreesRegressor
@@ -25,6 +26,14 @@ def read_csv_to_dataframe(file_path):
     """
     try:
         df = pd.read_csv(file_path)
+        print(f'shape {df.shape}')
+        print('-'*100)
+        print('List of columns')
+        print(df.columns.to_list())
+        print('-'*100)
+        print('Data info')
+        print(df.info())
+        print('-'* 100)
         return df
     except FileNotFoundError:
         print("Error: File not found. Please provide a valid file path.")
@@ -35,29 +44,28 @@ def read_csv_to_dataframe(file_path):
 #-------------------------------------------------------------------------------------------------------------------------------
 def preprocess_missing_values(df):
     """
-    Read a CSV file into a pandas DataFrame and preprocess it to handle missing values.
+    Preprocess a DataFrame to handle missing values.
     Parameters:
-    - file_path (str): Path to the CSV file to be read.
+    - df (pandas.DataFrame): DataFrame containing the data.
     Returns:
-    - df (pandas.DataFrame): Preprocessed DataFrame containing the data from the CSV file,
-                             with no missing values.
+    - df (pandas.DataFrame): Preprocessed DataFrame with no missing values.
     """
     try:
-        # Read the CSV file
-        #df = pd.read_csv(file_path)
-        # Preprocess the DataFrame to handle missing values
-        # For numerical columns, fill missing values with the median
-        for col in df.select_dtypes(include=['float64', 'int64']).columns:
-            df[col].fillna(df[col].median(), inplace=True)
-        # For categorical columns, fill missing values with a placeholder string 'Unknown'
-        for col in df.select_dtypes(include=['object']).columns:
-            df[col].fillna('Unknown', inplace=True)
-        return df
-    except FileNotFoundError:
-        print("Error: File not found. Please provide a valid file path.")
-        return None
-    except Exception as e:
-        print(f"Error occurred while reading the CSV file: {str(e)}")
+        missing_values_sum = df.isnull().sum()
+        print(missing_values_sum)
+        if missing_values_sum.sum() == 0:
+            print("No missing values found. No imputation needed.")
+            return df
+        else:
+            # For numerical columns, fill missing values with the median
+            for col in df.select_dtypes(include=['float64', 'int64']).columns:
+                df[col].fillna(df[col].median(), inplace=True)
+            # For categorical columns, fill missing values with a placeholder string 'Unknown'
+            for col in df.select_dtypes(include=['object']).columns:
+                df[col].fillna('Unknown', inplace=True)
+        return df  # Move this line outside the else block
+    except NameError as e:
+        print(e)
         return None
 
 #---------------------------------------------------------------------------------------------------------------------------------
@@ -119,9 +127,6 @@ def Feature_Encoding(df, target_column, features=None, encoding_method='one_hot'
             x_train[col] = encoder.fit_transform(x_train[col])
             x_test[col] = encoder.fit_transform(x_test[col])
     return x_train, x_test, y_train, y_test
-    
-feature = ['city','statezip']
-x_train, x_test, y_train, y_test = Feature_Encoding(df, 'price', features=feature, encoding_method='label')
 
 #----------------------------------------------------------------------------------------------------------
 def plot_correlation(data):
@@ -213,18 +218,4 @@ def run_ml_pipeline(X_train, X_test, y_train, y_test, models, use_cross_validati
     result = pd.DataFrame({'Model Name': model_names, 'Training Score': score_training, 'Test Score': score_test})
     print(result)
 
-# Define the list of models to run in the pipeline
-models = [
-    ('Random Forest', RandomForestRegressor, {'n_estimators': 100}),
-    ('Gradient Boosting', GradientBoostingRegressor, {'n_estimators': 100}),
-    ('Ridge Regression', Ridge, {'alpha': 1.0}),
-    ('Lasso Regression', Lasso, {'alpha': 1.0}),
-    ('ElasticNet Regression', ElasticNet, {'alpha': 1.0, 'l1_ratio': 0.5}),
-    ('Decision Tree', DecisionTreeRegressor, {'max_depth': 5}),
-    ('Extra Trees', ExtraTreesRegressor, {'n_estimators': 100}),
-    ('KNN', KNeighborsRegressor, {'n_neighbors': 5}),
-    ('Gaussian Process', GaussianProcessRegressor, {})
-]
-
-run_ml_pipeline(X_train_scaled, X_test_scaled, y_train, y_test, models, use_cross_validation=True)
 
