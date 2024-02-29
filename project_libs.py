@@ -1,4 +1,4 @@
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -69,7 +69,7 @@ def preprocess_missing_values(df):
         return None
 
 #---------------------------------------------------------------------------------------------------------------------------------
-def split_data(data, target_column, split_size=0.2, random_state=None):
+def split_data(data, target_column, split_size=0.2, random_state=42):
     """
     Splits the data into features (X) and target (y), and further splits them into
     training and testing sets.
@@ -217,5 +217,9 @@ def run_ml_pipeline(X_train, X_test, y_train, y_test, models, use_cross_validati
 
     result = pd.DataFrame({'Model Name': model_names, 'Training Score': score_training, 'Test Score': score_test})
     print(result)
-
-
+    
+#--------------------------------------------------------------------------------------------------------------------
+def hyperparameter_tuning(model, param_grid, X_train, y_train, scoring):
+    random_search = RandomizedSearchCV(estimator=model, param_distributions=param_grid, scoring=scoring, n_iter=100, cv=5)
+    random_search.fit(X_train, y_train)
+    return random_search.best_estimator_, random_search.best_params_, random_search.best_score_
