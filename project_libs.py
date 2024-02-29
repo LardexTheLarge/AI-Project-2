@@ -187,6 +187,8 @@ def run_ml_pipeline(df, target_column, features, models,encoding_method='label',
     print('_'*100)
     df = Feature_Encoding(df = df, target_column = target_column, features=features, encoding_method = encoding_method)
     print('_'*100)
+    #TODO: scale the split data
+    
     X_train, X_test, y_train, y_test = split_data(df, target_column = target_column, split_size=0.2, random_state=42)
     print('_'*100)
     df = libs.preprocess_missing_values(df)
