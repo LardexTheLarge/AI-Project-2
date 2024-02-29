@@ -106,7 +106,7 @@ def split_data(data, target_column, split_size=0.2, random_state=42):
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 def Feature_Encoding(df, target_column, features=None, encoding_method='one_hot'):
-    x_train, x_test, y_train, y_test = libs.split_data(df,target_column)
+    
     """
     Hot encoding or label encoding for specified features.
     """
@@ -116,17 +116,20 @@ def Feature_Encoding(df, target_column, features=None, encoding_method='one_hot'
         raise ValueError("Invalid encoding method. Please choose 'one_hot' or 'label'.")
     if encoding_method == 'one_hot':
         encoder = OneHotEncoder()
+        
         for col in features:
             # Fit and transform on training data
-            x_train[col]= encoder.fit_transform(x_train[col])
+            #encoder.fit(x_train[col])
+            df[col]= encoder.fit_transform(df[col])
             # Transform on test data
-            x_test[col] = encoder.fit_transform(x_test[col])
+            df[col] = encoder.fit_transform(df[col])
     else:
         encoder = LabelEncoder()
         for col in features:
-            x_train[col] = encoder.fit_transform(x_train[col])
-            x_test[col] = encoder.fit_transform(x_test[col])
-    return x_train, x_test, y_train, y_test
+            #encoder.fit(x_train[col])
+            df[col] = encoder.fit_transform(df[col])
+            df[col] = encoder.fit_transform(df[col])
+    return df
 
 #----------------------------------------------------------------------------------------------------------
 def plot_correlation(data):
@@ -168,7 +171,7 @@ def create_pair_plot(data):
     plt.show()
 
 #--------------------------------------------------------------------------------------------------------------------
-def run_ml_pipeline(X_train, X_test, y_train, y_test, models, use_cross_validation=True):
+def run_ml_pipeline(df, target_column, features, models,encoding_method='label',  use_cross_validation=True):
     """
     Run a pipeline of machine learning models on preprocessed data.
 
@@ -180,6 +183,14 @@ def run_ml_pipeline(X_train, X_test, y_train, y_test, models, use_cross_validati
     - models: List of tuples (model_name, model_instance, model_parameters)
     - use_cross_validation: Whether to use cross-validation or model scoring
     """
+    df = preprocess_missing_values(df)
+    print('_'*100)
+    df = Feature_Encoding(df = df, target_column = target_column, features=features, encoding_method = encoding_method)
+    print('_'*100)
+    X_train, X_test, y_train, y_test = split_data(df, target_column = target_column, split_size=0.2, random_state=42)
+    print('_'*100)
+    df = libs.preprocess_missing_values(df)
+    print('_'*100)
 
     score_test = []
     score_training = []
@@ -216,10 +227,6 @@ def run_ml_pipeline(X_train, X_test, y_train, y_test, models, use_cross_validati
         model_names.append(model_name)
 
     result = pd.DataFrame({'Model Name': model_names, 'Training Score': score_training, 'Test Score': score_test})
-    print(result)
-    
-#--------------------------------------------------------------------------------------------------------------------
-def hyperparameter_tuning(model, param_grid, X_train, y_train, scoring):
-    random_search = RandomizedSearchCV(estimator=model, param_distributions=param_grid, scoring=scoring, n_iter=100, cv=5)
-    random_search.fit(X_train, y_train)
-    return random_search.best_estimator_, random_search.best_params_, random_search.best_score_
+    return X_train, X_test, y_train, y_test,result
+
+
