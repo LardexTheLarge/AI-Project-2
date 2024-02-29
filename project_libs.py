@@ -229,4 +229,8 @@ def run_ml_pipeline(df, target_column, features, models,encoding_method='label',
     result = pd.DataFrame({'Model Name': model_names, 'Training Score': score_training, 'Test Score': score_test})
     return X_train, X_test, y_train, y_test,result
 
-
+#--------------------------------------------------------------------------------------------------------------------
+def hyperparameter_tuning(model, param_grid, X_train, y_train, scoring):
+    random_search = RandomizedSearchCV(estimator=model, param_distributions=param_grid, scoring=scoring, n_iter=100, cv=5)
+    random_search.fit(X_train, y_train)
+    return random_search.best_estimator_, random_search.best_params_, random_search.best_score_
