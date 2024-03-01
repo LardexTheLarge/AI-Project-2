@@ -307,3 +307,8 @@ def hyperparameter_tuning(model, param_grid, X_train, y_train, scoring):
     best_score = random_search.best_score_
 
     return best_model, best_params, best_score
+
+
+# Custom function to remove scientific notation
+def format_price(price):
+    return '{:.2f}'.format(price)
