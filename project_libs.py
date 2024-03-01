@@ -7,7 +7,8 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder, StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score
 import project_libs as libs
-
+import pandas as pd
+from scipy import stats
 from sklearn.svm import SVR
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, ExtraTreesRegressor
 from sklearn.linear_model import Ridge, Lasso, ElasticNet
@@ -233,12 +234,12 @@ def run_ml_pipeline(df, target_column, features, models, encoding_method='label'
         print('_'*100)
         df = Feature_Encoding(df=df, features=features, encoding_method=encoding_method)
         print('_'*100)
+        df = remove_outliers_zscore(df)
         X_train, X_test, y_train, y_test = split_data(df, target_column=target_column, split_size=0.2, random_state=42)
         print('_'*100)
         x_scaler = StandardScaler().fit(X_train)
-        X_train_scaled = x_scaler.transform(X_train)
-        X_test_scaled = x_scaler.transform(X_test)
-
+        X_train_scaled = pd.DataFrame(x_scaler.transform(X_train), columns = X_train.columns)
+        X_test_scaled = pd.DataFrame(x_scaler.transform(X_test),columns = X_train.columns)
         # Model evaluation
         score_test = []
         score_training = []
@@ -312,3 +313,64 @@ def hyperparameter_tuning(model, param_grid, X_train, y_train, scoring):
 # Custom function to remove scientific notation
 def format_price(price):
     return '{:.2f}'.format(price)
+
+
+def remove_outliers(df, threshold=1.5):
+    """
+    Remove outliers from all columns of a DataFrame using the IQR method.
+
+    Parameters:
+    - df: DataFrame
+    - threshold: float, optional (default=1.5)
+        Threshold value for identifying outliers. Data points beyond this threshold
+        multiplied by the IQR will be considered outliers.
+
+    Returns:
+    - DataFrame without outliers
+    """
+    # Copy the original DataFrame to avoid modifying the input DataFrame
+    df_cleaned = df.copy()
+
+    # Iterate through each column
+    for column in df.columns:
+        # Calculate the IQR for the column
+        Q1 = df[column].quantile(0.25)
+        Q3 = df[column].quantile(0.75)
+        IQR = Q3 - Q1
+
+        # Define the lower and upper bounds to identify outliers
+        lower_bound = Q1 - threshold * IQR
+        upper_bound = Q3 + threshold * IQR
+
+        # Remove outliers based on the bounds
+        df_cleaned = df_cleaned[(df_cleaned[column] >= lower_bound) & (df_cleaned[column] <= upper_bound)]
+
+    return df_cleaned
+
+#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+def remove_outliers_zscore(df, z_threshold=3):
+    """
+    Remove outliers from all columns of a DataFrame using the Z-score method.
+
+    Parameters:
+    - df: DataFrame
+    - z_threshold: float, optional (default=3)
+        Threshold value for identifying outliers. Data points with Z-scores beyond
+        this threshold will be considered outliers.
+
+    Returns:
+    - DataFrame without outliers
+    """
+    # Copy the original DataFrame to avoid modifying the input DataFrame
+    df_cleaned = df.copy()
+
+    # Iterate through each column
+    for column in df.columns:
+        # Calculate the Z-scores for each data point in the column
+        z_scores = stats.zscore(df[column])
+
+        # Identify and remove outliers based on the Z-scores
+        outliers_mask = (abs(z_scores) <= z_threshold)
+        df_cleaned = df_cleaned[outliers_mask]
+
+    return df_cleaned
